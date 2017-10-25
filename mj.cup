@@ -88,13 +88,11 @@ non terminal Node main_class;
 non terminal Node END;
 
 /* Declare precedence and associativity  here */
+
+precedence left AND, EQUAL;
+precedence left MINUS, PLUS;
 precedence left TIMES;
 precedence right UMINUS;
-precedence right AND;
-precedence right PLUS;
-precedence right MINUS;
-precedence right EQUAL;
-
 
 /* Meggy Java Grammar */
 start with program;
@@ -137,26 +135,34 @@ statement ::= MEGGYSETPIXEL:me LPAREN exp:x COMMA exp:y  COMMA exp:color RPAREN 
 				| MEGGYDELAY:me LPAREN exp:x RPAREN SEMI {:
 					RESULT = new MeggyDelay(me.line, me.pos, (IExp) x);
 				:}
-				| IF LPAREN exp RPAREN statement { ELSE statement}
-				| WHILE LPAREN exp RPAREN statement
-				| LBRACE statement_list:list RBRACE
+				| IF:i LPAREN exp:x RPAREN statement:is {ELSE statement:es} {:
+					RESULT = new IfStatement(i.line, i.pos, (IExp) x, (IStatement) is, (IStatement) es );
+				:}
+				| WHILE:i LPAREN exp:x RPAREN statement:s {:
+					RESULT = new WhileStatement(i.line, i.pos, (IExp) x, (IStatement) s);
+				:}
 ;
 
 exp ::=    	exp:a AND:i exp:b {:
 					RESULT = new AndExp(i.line, i.pos, (IExp) a, (IExp) b);
 				:}
-				exp PLUS exp {:
+				| exp:a PLUS:i exp:b {:
 					RESULT = new PlusExp(i.line, i.pos, (IExp) a, (IExp) b);
 				:}
-				exp MINUS exp {:
+				| exp:a MINUS:i exp:b {:
 					RESULT = new MinusExp(i.line, i.pos, (IExp) a, (IExp) b);
 				:}
-				exp EQUAL exp {:
+				%prec MINUS
+				| exp:a EQUAL:i exp:b {:
 					RESULT = new EqualExp(i.line, i.pos, (IExp) a, (IExp) b);
+				:}
+				| exp:a TIMES:i exp:b {:
+					RESULT = new MulExp(i.line, i.pos, (IExp) a, (IExp) b);
 				:}
 				| MINUS:i exp:child {:
 					RESULT = new NegExp(i.line, i.pos, (IExp) child);
 				:}
+				%prec UMINUS
 				| MEGGYGETPIXEL:mgp LPAREN exp:x COMMA exp:y RPAREN {:
 					RESULT = new MeggyGetPixel(mgp.line, mgp.pos, (IExp) x, (IExp) y);
 				:}
@@ -166,6 +172,7 @@ exp ::=    	exp:a AND:i exp:b {:
 				| LPAREN:i BYTE RPAREN exp:child {:
 					RESULT = new ByteCast(i.line, i.pos, (IExp) child);
 				:}
+				%prec TIMES
 				| INT_LITERAL:i {:
 					RESULT = new IntLiteral(i.line, i.pos, i.lexeme, i.value);
 				:}
@@ -184,8 +191,8 @@ exp ::=    	exp:a AND:i exp:b {:
 				| NOT:i exp:child {:
 					RESULT = new NotExp(i.line, i.pos, (IExp) child);
 				:}
-				| LPAREN exp:e RPAREN {:
-					RESULT = (e);
+				| LPAREN exp:i RPAREN {:
+					RESULT = i;
 				:}
 
 ;
