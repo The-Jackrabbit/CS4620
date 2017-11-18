@@ -239,8 +239,7 @@ main_class ::=
 block_statement ::= 	LBRACE:i RBRACE {:
 							if(RESULT == null) {
 								RESULT = new LinkedList<IStatement>();
-							} 
-							RESULT.add((IStatement) new BlockStatement(i.line, i.pos, new LinkedList<IStatement>())); 
+							}  
 						:}
 						| LBRACE:i statement_list:l1 block_statement:l2 RBRACE {:
 							if(RESULT == null) {
