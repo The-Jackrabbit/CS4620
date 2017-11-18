@@ -98,13 +98,14 @@ non terminal Node END;
 
 /* Declare precedence and associativity  here */
 
-precedence left RBRACE;
-precedence right IF;
-precedence left ELSE;
-precedence left AND, EQUAL, LT;
+precedence left AND;
+precedence left EQUAL;
+precedence nonassoc LT;
 precedence left MINUS, PLUS;
 precedence left TIMES;
-precedence right UMINUS;
+precedence right NEW;
+precedence right UMINUS, NOT;
+precedence left DOT, LPAREN, RPAREN;
 
 /* Meggy Java Grammar */
 start with program;
@@ -365,7 +366,7 @@ exp ::=    	exp:a AND:i exp:b {:
 				| LPAREN:i BYTE RPAREN exp:child {:
 					RESULT = new ByteCast(i.line, i.pos, (IExp) child);
 				:}
-				%prec TIMES
+				%prec NEW
 				| INT_LITERAL:i {:
 					RESULT = new IntLiteral(i.line, i.pos, i.lexeme, i.value);
 				:}
