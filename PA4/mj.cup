@@ -1,0 +1,403 @@
+
+package mjparser;
+import java_cup.runtime.*;
+import java.util.*;
+import java.io.PrintWriter;
+import java.io.BufferedReader;
+import java.io.FileReader;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.io.File;
+import java.io.FileNotFoundException;
+import ast.node.*;
+import ast.visitor.*;
+
+parser code {:
+
+    public PrintWriter out; 
+    
+    public String programName;
+
+    public void unrecovered_syntax_error(Symbol cur_SymbolValue) {
+        report_fatal_error("Fatal syntax error", cur_SymbolValue);
+    }
+    
+    public void report_fatal_error(String message, Object info) {
+        report_error(message, info);
+        done_parsing();
+        Symbol SymbolValue = (Symbol)info;
+        mjparser.SymbolValue tok = (mjparser.SymbolValue)SymbolValue.value;
+        throw new mjparser.ParseException("Fatal parsing error", 
+                                          tok.line, tok.pos);
+    }
+    
+    public void report_error(String message, Object info) {
+        Symbol SymbolValue = (Symbol)info;
+        mjparser.SymbolValue tok = (mjparser.SymbolValue)SymbolValue.value;
+        System.err.println("[" + tok.line + "," + tok.pos + "] " 
+                               + message + " at " + tok.toString() );
+    }
+            
+:}
+
+/* Notice: all terminals declared here */
+terminal SymbolValue PLUS, MINUS, TIMES, LPAREN, RPAREN;
+terminal SymbolValue LBRACE, RBRACE;
+terminal SymbolValue BOOLEAN, INT;
+terminal SymbolValue BYTE;
+terminal SymbolValue MAIN, IMPORT;
+terminal SymbolValue IF, ELSE;
+terminal SymbolValue LT;
+terminal SymbolValue EQUAL;
+terminal SymbolValue AND, NOT;
+terminal SymbolValue WHILE;
+terminal SymbolValue COMMA, DOT;
+terminal SymbolValue NEW, PUBLIC, RETURN, STATIC;
+terminal SymbolValue STRING, VOID;
+terminal SymbolValue CLASS, EXTENDS;
+terminal SymbolValue LBRACKET, RBRACKET;
+terminal SymbolValue LENGTH;
+terminal SymbolValue SEMI;
+terminal SymbolValue ASSIGN;
+
+terminal SymbolValue MEGGY;
+terminal SymbolValue MEGGYCOLOR;
+terminal SymbolValue MEGGYBUTTON;
+terminal SymbolValue MEGGYTONE;
+terminal SymbolValue MEGGYSETPIXEL;
+terminal SymbolValue MEGGYSETAUXLEDS;
+terminal SymbolValue MEGGYTONESTART;
+terminal SymbolValue MEGGYDELAY;
+terminal SymbolValue MEGGYGETPIXEL;
+terminal SymbolValue MEGGYCHECKBUTTON;
+
+terminal SymbolValue INT_LITERAL, ID;
+terminal SymbolValue TRUE, FALSE;
+terminal SymbolValue COLOR_LITERAL, BUTTON_LITERAL, TONE_LITERAL;
+terminal SymbolValue THIS;
+
+/* bogus terminal for unary precedence declaration */
+terminal UMINUS;
+
+non terminal LinkedList<IExp> expression_list;
+non terminal LinkedList<Formal>	formal_list;
+non terminal Formal formal;
+non terminal IType type;
+non terminal LinkedList<MethodDecl> method_list;
+non terminal MethodDecl method_decl;
+non terminal LinkedList<IClassDecl> class_list;
+non terminal IClassDecl class_decl;
+non terminal Node program;
+non terminal Node exp;
+non terminal IStatement statement;
+non terminal LinkedList<IStatement> block_statement;
+non terminal LinkedList<IStatement> statement_list;
+non terminal Node main_class;
+non terminal Node END;
+
+/* Declare precedence and associativity  here */
+
+precedence left RBRACE;
+precedence right IF;
+precedence left ELSE;
+precedence left AND, EQUAL, LT;
+precedence left MINUS, PLUS;
+precedence left TIMES;
+precedence right UMINUS;
+
+/* Meggy Java Grammar */
+start with program;
+
+program ::= 
+    IMPORT:i MEGGY SEMI main_class:j class_list:l {:
+	 	RESULT =  new Program(i.line, i.pos, (MainClass) j, l);
+	 :}
+	| IMPORT:i MEGGY SEMI main_class:j {:
+	 	RESULT =  new Program(i.line, i.pos, (MainClass) j, new LinkedList<IClassDecl>());
+	 :}
+    ;
+
+
+class_list ::=
+		class_decl:i {:
+			if(RESULT == null) {
+				RESULT = new LinkedList<IClassDecl>();
+			} 
+			RESULT.add(i); 
+		:}
+	  | class_decl:i class_list:l {:
+			if(RESULT == null) {
+				RESULT = new LinkedList<IClassDecl>();
+			} 
+			RESULT.add(i);
+			RESULT.addAll(l);
+		:}
+	;
+
+class_decl ::=
+		CLASS ID:name LBRACE method_list:l RBRACE {:
+			RESULT = (IClassDecl) new TopClassDecl(name.line, name.pos, name.lexeme, new LinkedList<VarDecl>(), l);
+		:}
+		| CLASS ID:name LBRACE RBRACE {:
+			RESULT = (IClassDecl) new TopClassDecl(name.line, name.pos, name.lexeme, new LinkedList<VarDecl>(), new LinkedList<MethodDecl>());
+		:}
+	;
+
+method_list ::=
+		method_decl:i {:
+			if(RESULT == null) {
+				RESULT = new LinkedList<MethodDecl>();
+			} 
+			RESULT.add(i); 
+		:}
+	  |	method_decl:i method_list:l {:
+			if(RESULT == null) {
+				RESULT = new LinkedList<MethodDecl>();
+			} 
+			RESULT.add(i);
+			RESULT.addAll(l);
+		:}
+	;
+
+method_decl ::=
+		PUBLIC type:i ID:name LPAREN formal_list:l1 RPAREN LBRACE block_statement:l2 RETURN exp:x SEMI RBRACE {:
+			RESULT = new MethodDecl(i.line, i.pos, i, l1, new LinkedList<VarDecl>(), l2, x);
+		:}
+	  | PUBLIC type:i ID:name LPAREN formal_list:l1 RPAREN LBRACE block_statement:l2 RBRACE {:
+			RESULT = new MethodDecl(i.line, i.pos, i, l1, new LinkedList<VarDecl>(), l2, NULL);
+		:}
+	  | PUBLIC type:i ID:name LPAREN RPAREN LBRACE block_statement:l2 RETURN exp:x SEMI RBRACE {:
+			RESULT = new MethodDecl(i.line, i.pos, i, new LinkedList<Formal>(), new LinkedList<VarDecl>(), l2, x);
+		:}			
+	  | PUBLIC type:i ID:name LPAREN RPAREN LBRACE block_statement:l2 RBRACE {:
+			RESULT = new MethodDecl(i.line, i.pos, i, new LinkedList<Formal>(), new LinkedList<VarDecl>(), l2, NULL);
+		:}
+	;
+
+type ::=
+		BOOLEAN:i {:
+			RESULT = (IType) new BoolType(i.line, i.pos);
+		:}
+	  | INT:i {:
+			RESULT = (IType) new IntType(i.line, i.pos);
+		:}
+	  | BYTE:i {:
+			RESULT = (IType) new ByteType(i.line, i.pos);
+		:}
+	  | VOID:i {:
+			RESULT = (IType) new VoidType(i.line, i.pos);
+		:}
+	  | MEGGYCOLOR:i {:
+			RESULT = (IType) new ColorType(i.line, i.pos);
+		:}
+	  | MEGGYTONE:i {:
+			RESULT = (IType) new ToneType(i.line, i.pos);
+		:}
+	;
+
+formal_list ::=
+		formal:i {:
+			if(RESULT == null) {
+				RESULT = new LinkedList<Formal>();
+			} 
+			RESULT.add(i);
+		:}
+	  | formal:i COMMA formal_list:l {:
+			if(RESULT == null) {
+				RESULT = new LinkedList<Formal>();
+			} 
+			RESULT.add(i);
+			RESULT.addAll(l);
+	    :}
+	;
+
+formal ::=
+		type:i ID:name {:
+			RESULT = new Formal(i.line, i.pos, i, name.lexeme);
+		:}
+	;
+    
+main_class ::=
+        CLASS ID:name
+        LBRACE PUBLIC STATIC VOID MAIN 
+        LPAREN STRING LBRACKET RBRACKET ID:param RPAREN:start 
+        block_statement:list {:
+		  		RESULT = new MainClass(name.line, name.pos, name.lexeme, param.lexeme, new BlockStatement(start.line, start.pos, list));
+		  :}
+        RBRACE
+    ;
+
+block_statement ::= 	LBRACE:i RBRACE {:
+							if(RESULT == null) {
+								RESULT = new LinkedList<IStatement>();
+							} 
+							RESULT.add((IStatement) new BlockStatement(i.line, i.pos, new LinkedList<IStatement>())); 
+						:}
+						| LBRACE:i statement_list:l1 block_statement:l2 RBRACE {:
+							if(RESULT == null) {
+								RESULT = new LinkedList<IStatement>();
+							}
+							l1.add((IStatement) new BlockStatement(i.line, i.pos, l2));
+							RESULT.addAll(l1);
+							
+						:}
+						| LBRACE:i block_statement:l RBRACE {:
+							if(RESULT == null) {
+								RESULT = new LinkedList<IStatement>();
+							}
+							RESULT.add((IStatement) new BlockStatement(i.line, i.pos, l)); 
+						:}
+						| LBRACE:i statement_list:l RBRACE {:
+							if(RESULT == null) {
+								RESULT = new LinkedList<IStatement>();
+							}
+							RESULT.addAll(l);
+							
+						:}
+			;
+
+statement_list ::=     statement:i {:
+							if(RESULT == null) {
+								RESULT = new LinkedList<IStatement>();
+							}
+							RESULT.add(i);
+							
+						:}
+						| statement:i statement_list:l {:
+							if(RESULT == null) {
+								RESULT = new LinkedList<IStatement>();
+							}
+							l.addFirst(i);
+							RESULT.addAll(l);
+						:} 
+				;
+
+statement ::=   MEGGYSETPIXEL:me LPAREN exp:x COMMA exp:y  COMMA exp:color RPAREN SEMI {:
+					RESULT = new MeggySetPixel(me.line, me.pos, (IExp) x, (IExp) y, (IExp) color);
+				:}
+				| MEGGYDELAY:me LPAREN exp:x RPAREN SEMI {:
+					RESULT = new MeggyDelay(me.line, me.pos, (IExp) x);
+				:}
+				| MEGGYTONESTART:me LPAREN exp:x COMMA exp:y RPAREN SEMI {:
+					RESULT = new MeggyToneStart(me.line, me.pos, (IExp) x, (IExp) y);
+				:}
+				| exp:name DOT ID:method LPAREN expression_list:l RPAREN SEMI {:
+					RESULT = new CallStatement(name.line, name.pos, (IExp) name, method.lexeme, l);
+				:}
+				| exp:name DOT ID:method LPAREN RPAREN SEMI {:
+					RESULT = new CallStatement(name.line, name.pos, (IExp) name, method.lexeme, new LinkedList<IExp>());
+				:}
+				| IF:i LPAREN exp:x RPAREN statement:is {:
+					RESULT = new IfStatement(i.line, i.pos, (IExp) x, (IStatement) is, (IStatement) null );
+				:}
+				| IF:i LPAREN exp:x RPAREN statement:is ELSE statement:es {:
+					RESULT = new IfStatement(i.line, i.pos, (IExp) x, (IStatement) is, (IStatement) es );
+				:}
+				| WHILE:i LPAREN exp:x RPAREN statement:s {:
+					RESULT = new WhileStatement(i.line, i.pos, (IExp) x, (IStatement) s);
+				:}
+				| IF:i LPAREN exp:x RPAREN:j block_statement:is {:
+					RESULT = new IfStatement(i.line, i.pos, (IExp) x, (IStatement) new BlockStatement(j.line,j.pos,is), (IStatement) null );
+				:}
+				| IF:i LPAREN exp:x RPAREN:j block_statement:is ELSE:k block_statement:es {:
+					RESULT = new IfStatement(i.line, i.pos, (IExp) x, (IStatement) new BlockStatement(j.line,j.pos,is), (IStatement) new BlockStatement(k.line,k.pos,es));
+				:}
+				| WHILE:i LPAREN exp:x RPAREN:j block_statement:s {:
+					RESULT = new WhileStatement(i.line, i.pos, (IExp) x, (IStatement) new BlockStatement(j.line,j.pos,s));
+				:}
+				| IF:i LPAREN exp:x RPAREN statement:is ELSE:j block_statement:es {:
+					RESULT = new IfStatement(i.line, i.pos, (IExp) x, (IStatement) is, (IStatement) new BlockStatement(j.line,j.pos,es));
+				:}
+				| IF:i LPAREN exp:x RPAREN:j block_statement:is ELSE statement:es {:
+					RESULT = new IfStatement(i.line, i.pos, (IExp) x, (IStatement) new BlockStatement(j.line,j.pos,is), (IStatement) es );
+				:}
+;
+
+expression_list ::=
+		exp:i {:
+			if(RESULT == null) {
+				RESULT = new LinkedList<IExp>();
+			} 
+			RESULT.add(i);
+		:}
+	  | exp:i COMMA expression_list:l {:
+			if(RESULT == null) {
+				RESULT = new LinkedList<IExp>();
+			} 
+			RESULT.add(i);
+			RESULT.addAll(l);
+	    :}
+	;
+
+exp ::=    	exp:a AND:i exp:b {:
+					RESULT = new AndExp(i.line, i.pos, (IExp) a, (IExp) b);
+				:}
+				| exp:name DOT ID:method LPAREN expression_list:l RPAREN SEMI {:
+					RESULT = new CallExp(name.line, name.pos, (IExp) name, method.lexeme, l);
+				:}
+				| exp:name DOT ID:method LPAREN RPAREN SEMI {:
+					RESULT = new CallExp(name.line, name.pos, (IExp) name, method.lexeme, new LinkedList<IExp>());
+				:}
+				| exp:a PLUS:i exp:b {:
+					RESULT = new PlusExp(i.line, i.pos, (IExp) a, (IExp) b);
+				:}
+				| exp:a MINUS:i exp:b {:
+					RESULT = new MinusExp(i.line, i.pos, (IExp) a, (IExp) b);
+				:}
+				%prec MINUS
+				| exp:a EQUAL:i exp:b {:
+					RESULT = new EqualExp(i.line, i.pos, (IExp) a, (IExp) b);
+				:}
+				| exp:a TIMES:i exp:b {:
+					RESULT = new MulExp(i.line, i.pos, (IExp) a, (IExp) b);
+				:}
+				| MINUS:i exp:child {:
+					RESULT = new NegExp(i.line, i.pos, (IExp) child);
+				:}
+				%prec UMINUS
+				| MEGGYGETPIXEL:mgp LPAREN exp:x COMMA exp:y RPAREN {:
+					RESULT = new MeggyGetPixel(mgp.line, mgp.pos, (IExp) x, (IExp) y);
+				:}
+				| MEGGYCHECKBUTTON:mcb LPAREN exp:child RPAREN {:
+					RESULT = new MeggyCheckButton(mcb.line, mcb.pos, (IExp) child);
+				:}
+				| LPAREN:i BYTE RPAREN exp:child {:
+					RESULT = new ByteCast(i.line, i.pos, (IExp) child);
+				:}
+				%prec TIMES
+				| INT_LITERAL:i {:
+					RESULT = new IntLiteral(i.line, i.pos, i.lexeme, i.value);
+				:}
+				| COLOR_LITERAL:i {:
+					RESULT = new ColorLiteral(i.line, i.pos, i.lexeme, i.value);
+				:}
+				| BUTTON_LITERAL:i {:
+					RESULT = new ButtonLiteral(i.line, i.pos, i.lexeme, i.value);
+				:}
+				| TRUE:i {:
+					RESULT = new TrueLiteral(i.line, i.pos, i.lexeme, i.value);
+				:}
+				| FALSE:i {:
+					RESULT = new FalseLiteral(i.line, i.pos, i.lexeme, i.value);
+				:}
+				| NOT:i exp:child {:
+					RESULT = new NotExp(i.line, i.pos, (IExp) child);
+				:}
+				| LPAREN exp:i RPAREN {:
+					RESULT = i;
+				:}
+				| exp:a LT:i exp:b {:
+					RESULT = new LtExp(i.line, i.pos, (IExp) a, (IExp) b);
+				:}
+				| ID:name {:
+					RESULT = new IdLiteral(name.line, name.pos, name.lexeme);
+				 :}
+				| THIS:i {:
+					RESULT = new ThisLiteral(i.line, i.pos, i.lexeme, i.value);
+				:}
+				| NEW ID:name LPAREN RPAREN {:
+					RESULT = new NewExp(name.line, name.pos, name.lexeme);
+				:}
+
+	;
