@@ -16,13 +16,18 @@ import exceptions.InternalException;
  */
 public class SymTable {
     private final HashMap<Node,Type> mExpType = new HashMap<Node,Type>(); //maps ast nodes to types for type checking
-	private Scope GlobalScope;  //root of symbol table tree
-	private Stack ScopeStack;  //current scope stack
-	
+	private Scope GlobalScope;  //root of symbol table tree	
+	private STE CurrentScope; //points to current scope in symbol table tree
 
     public SymTable() {
-		
+		GlobalScope = null;
+		CurrentScope = null;
     }
+
+	//get current scope
+	public STE getCurrentScope() {
+		return CurrentScope;
+	}
 
 	/* Looks up a symbol in symbol table.
 	   Starts looking in innermost scope and then
@@ -31,24 +36,25 @@ public class SymTable {
 		
 	}
 
-	/* Looks up a symbol in the innermost scope only.
+	/* Looks up a symbol in the current scope only.
 	   Returns null if symbol not found */
-	public STE lookupInnermost(String sym) {
+	public STE lookupCurrent(String sym) {
 		
 	}
 
-	/* Inserts an STE into scope at top of scope stack */
+	/* Inserts an STE into the current scope */
 	public void insert(STE ste) {
 		
 	}
 	
 	/* Looks up the given method or class STE and makes it
-	   the innermost scope (makes it top of the scope stack) */
-	public void pushScope(String id) {
+	   the current scope */
+	public void enterScope(String id) {
 		
 	}
-
-	public void popScope() {
+	
+	/* Exits current STE and moves the current scope up one level */
+	public void exitScope() {
 		
 	}
     
@@ -61,8 +67,5 @@ public class SymTable {
     {
     	return this.mExpType.get(exp);
     }
-   
-/*
- */
 
 }

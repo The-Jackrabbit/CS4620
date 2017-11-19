@@ -2,18 +2,18 @@ package symtable;
 import java.util.*;
 
 public class Scope {
-	//maps STE method or variable names to their STEs
-	private HashMap<String,STE> enclosed = new HashMap<String,STE>();
+	//maps STE method or variable names to the STEs they enclose
+	private HashMap<String,STE> Enclosing = new HashMap<String,STE>();
 
 	public Scope() {}
 
-	public void setEnclosed(String Name, STE ste)
+	public void setEnclosing(String Name, STE ste)
     {
-    	this.enclosed.put(Name, ste);
+    	this.Enclosing.put(Name, ste);
     }
     
-    public STE getEnclosed(String Name)
+    public STE getEnclosing(String Name)
     {
-    	return this.enclosed.get(Name);
+    	return this.Enclosing.get(Name);
     }
 }

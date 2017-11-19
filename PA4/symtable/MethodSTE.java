@@ -5,8 +5,8 @@ public class MethodSTE extends STE {
 	private String Signature; //holds signature of method, in the form: "(Type, Type, ...) RETURNS Type" -spacing is exact
 	private Scope scope; //points to the Scope object for this method, which will point to the enclosed methods and variables
 	
-	public VarSTE(String Name, String Signature, Scope scope) {
-		super(Name);
+	public VarSTE(String Name, STE EnclosedBy, String Signature, Scope scope) {
+		super(Name, EnclosedBy);
 		this.Signature = Signature;
 		this.scope = scope;
 	}
