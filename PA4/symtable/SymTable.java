@@ -38,7 +38,7 @@ public class SymTable {
     public STE lookup(String sym) {
 		STE found;
 		for(STE scopeItr = CurrentScope; scopeItr != null; scopeItr = scopeItr.getEnclosedBy()) {
-			if((found = scopeItr.getScope.getEnclosing(sym)) != null) {
+			if((found = scopeItr.getScope().getEnclosing(sym)) != null) {
 				return found;
 			}
 		}

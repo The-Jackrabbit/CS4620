@@ -7,7 +7,7 @@ public class VarSTE extends STE {
 	private int Offset; //holds offset in bytes from base. Variable is located at Base+Offset at runtime
 	
 	public VarSTE(String Name, Type varType, char Base, int Offset) {
-		super(Name);
+		super(Name, null);
 		this.varType = varType;
 		this.Base = Base;
 		this.Offset = Offset;
