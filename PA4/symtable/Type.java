@@ -22,24 +22,8 @@ public class Type
 
   }
 
-  //The following nested classes ONLY WORK if methods take as arguments+return PRIMITIVE TYPES ONLY
-
-  //method signature type
-  public static class Signature {
-	
-	private Type ReturnType; //return type of the function
-	private LinkedList<Type> Arguments; //list of arguments	
-			
-	//builds method signature from IType AST node and LinkedList of Formal AST nodes
-  	public Signature(IType node, LinkedList<Formal> formals) {
-		ReturnType = getType(node);
-		Arguments = new LinkedList<Type>();
-		for(int i = 0; i < formals.size(); i++)
-			Arguments.add(getType(formals.get(i).getType()));
-	}
-
-	//returns correct Type object given an IType node of some type subclass
-	private Type getType(IType node) {
+  //returns correct Type object given an IType node of some type subclass
+	public Type getType(IType node) {
 		//if-else structure to determine what subclass of IType type is
 		if(node instanceof BoolType) 
 			return Type.BOOL;
@@ -55,6 +39,22 @@ public class Type
 			return Type.TONE;
 		else
 			return null;
+	}
+
+  //The following nested classes ONLY WORK if methods take as arguments+return PRIMITIVE TYPES ONLY
+
+  //method signature type
+  public static class Signature {
+	
+	private Type ReturnType; //return type of the function
+	private LinkedList<Type> Arguments; //list of arguments	
+			
+	//builds method signature from IType AST node and LinkedList of Formal AST nodes
+  	public Signature(IType node, LinkedList<Formal> formals) {
+		ReturnType = getType(node);
+		Arguments = new LinkedList<Type>();
+		for(int i = 0; i < formals.size(); i++)
+			Arguments.add(getType(formals.get(i).getType()));
 	}
 
 	public Type getReturnType() {
@@ -76,6 +76,25 @@ public class Type
 				return false;
 		}
 		return true;
+	}
+
+	//returns correct Type object given an IType node of some type subclass
+	private Type getType(IType node) {
+		//if-else structure to determine what subclass of IType type is
+		if(node instanceof BoolType) 
+			return Type.BOOL;
+		else if(node instanceof IntType)
+			return Type.INT;
+		else if(node instanceof ByteType)
+			return Type.BYTE;
+		else if(node instanceof ColorType)
+			return Type.COLOR;
+		else if(node instanceof VoidType)
+			return Type.VOID;
+		else if(node instanceof ToneType)
+			return Type.TONE;
+		else
+			return null;
 	}
 	
   }
