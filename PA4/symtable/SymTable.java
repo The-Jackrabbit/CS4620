@@ -15,13 +15,16 @@ import exceptions.InternalException;
  * WB: Simplified to only expression types
  */
 public class SymTable {
-    private final HashMap<Node,Type> mExpType = new HashMap<Node,Type>(); //maps ast nodes to types for type checking
+    private HashMap<Node,Type> mExpType; //maps ast nodes to types for type checking
 	private Scope GlobalScope;  //root of symbol table tree	
-	private STE CurrentScope; //points to current scope in symbol table tree
+	private STE CurrentScope; //points to current scope in symbol table tree.
+							  //CurrentScope == null when GlobalScope is the current scope
+							  //note that CurrentScope does not point to the scope itself but to the STE containing the scope
 
     public SymTable() {
-		GlobalScope = null;
+		GlobalScope = new Scope();
 		CurrentScope = null;
+		mExpType = new HashMap<Node,Type>();
     }
 
 	//get current scope
@@ -33,29 +36,46 @@ public class SymTable {
 	   Starts looking in innermost scope and then
 	   looks in enclosing scopes. Returns null if symbol not found */
     public STE lookup(String sym) {
-		
+		STE found;
+		for(STE scopeItr = CurrentScope; scopeItr != null; scopeItr = scopeItr.getEnclosedBy()) {
+			if((found = scopeItr.getScope.getEnclosing(sym)) != null) {
+				return found;
+			}
+		}
+		found = GlobalScope.getEnclosing(sym);
+		return found;
 	}
 
 	/* Looks up a symbol in the current scope only.
 	   Returns null if symbol not found */
 	public STE lookupCurrent(String sym) {
-		
+		if(CurrentScope == null) {
+			return GlobalScope.getEnclosing(sym);
+		}
+		return CurrentScope.getScope().getEnclosing(sym);
 	}
 
 	/* Inserts an STE into the current scope */
 	public void insert(STE ste) {
-		
+		ste.setEnclosedBy(CurrentScope);
+		if(CurrentScope == null)
+			GlobalScope.setEnclosing(ste.getName(), ste);
+		else 
+			CurrentScope.getScope().setEnclosing(ste.getName(), ste);
 	}
 	
 	/* Looks up the given method or class STE and makes it
 	   the current scope */
 	public void enterScope(String id) {
-		
+		STE found = lookup(id);
+		if(found != null)
+			CurrentScope = found;
 	}
 	
 	/* Exits current STE and moves the current scope up one level */
 	public void exitScope() {
-		
+		if(CurrentScope != null)
+			CurrentScope = CurrentScope.getEnclosedBy();
 	}
     
     public void setExpType(Node exp, Type t)

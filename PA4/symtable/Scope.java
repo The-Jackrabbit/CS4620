@@ -3,9 +3,11 @@ import java.util.*;
 
 public class Scope {
 	//maps STE method or variable names to the STEs they enclose
-	private HashMap<String,STE> Enclosing = new HashMap<String,STE>();
+	private HashMap<String,STE> Enclosing;
 
-	public Scope() {}
+	public Scope() {
+		HashMap = new HashMap<String,STE>();
+	}
 
 	public void setEnclosing(String Name, STE ste)
     {
