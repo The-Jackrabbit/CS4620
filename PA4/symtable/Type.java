@@ -35,24 +35,26 @@ public class Type
 		ReturnType = getType(node);
 		Arguments = new LinkedList<Type>();
 		for(int i = 0; i < formals.size(); i++)
-			Arguments.add(getType(formals.get(i)));
+			Arguments.add(getType(formals.get(i).getType()));
 	}
 
 	//returns correct Type object given an IType node of some type subclass
 	private Type getType(IType node) {
 		//if-else structure to determine what subclass of IType type is
-		if(node.getClass().equals(BoolType.class)) 
+		if(node instanceof BoolType) 
 			return Type.BOOL;
-		else if(node.getClass().equals(IntType.class))
+		else if(node instanceof IntType)
 			return Type.INT;
-		else if(node.getClass().equals(ByteType.class))
+		else if(node instanceof ByteType)
 			return Type.BYTE;
-		else if(node.getClass().equals(ColorType.class))
+		else if(node instanceof ColorType)
 			return Type.COLOR;
-		else if(node.getClass().equals(VoidType.class))
+		else if(node instanceof VoidType)
 			return Type.VOID;
-		else if(node.getClass().equals(ToneType.class))
+		else if(node instanceof ToneType)
 			return Type.TONE;
+		else
+			return null;
 	}
 
 	public Type getReturnType() {
@@ -67,10 +69,10 @@ public class Type
 	public boolean equals(Type.Signature sig) {
 		if(this.ReturnType != sig.ReturnType)
 			return false;
-		if(this.size() != sig.size())
+		if(this.Arguments.size() != sig.Arguments.size())
 			return false;
-		for(int i = 0; i < this.size(); i++) {
-			if(this.Arguments(i) != sig.Arguments(i))
+		for(int i = 0; i < this.Arguments.size(); i++) {
+			if(this.Arguments.get(i) != sig.Arguments.get(i))
 				return false;
 		}
 		return true;

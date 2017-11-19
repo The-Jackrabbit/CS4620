@@ -6,7 +6,7 @@ public class Scope {
 	private HashMap<String,STE> Enclosing;
 
 	public Scope() {
-		HashMap = new HashMap<String,STE>();
+		this.Enclosing = new HashMap<String,STE>();
 	}
 
 	public void setEnclosing(String Name, STE ste)

@@ -11,7 +11,7 @@ public class STE {
 		this.scope = scope;
 	}
 	
-	public char getScope() {
+	public Scope getScope() {
 		return scope;
 	}
 
@@ -23,7 +23,7 @@ public class STE {
 		return EnclosedBy;
 	}
 
-	public STE setEnclosedBy(STE EnclosedBy) {
+	public void setEnclosedBy(STE EnclosedBy) {
 		this.EnclosedBy = EnclosedBy;
 	}
 }
