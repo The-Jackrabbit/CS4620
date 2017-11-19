@@ -3,7 +3,7 @@ import java.util.*;
 
 public class ClassSTE extends STE {
 	
-	public VarSTE(String Name) {
+	public ClassSTE(String Name) {
 		super(Name, new Scope());
 	}
 }

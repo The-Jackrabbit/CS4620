@@ -88,4 +88,22 @@ public class SymTable {
     	return this.mExpType.get(exp);
     }
 
+	//returns correct Type object given an IType node of some type subclass
+	public Type getType(IType node) {
+		//if-else structure to determine what subclass of IType type is
+		if(node instanceof BoolType) 
+			return Type.BOOL;
+		else if(node instanceof IntType)
+			return Type.INT;
+		else if(node instanceof ByteType)
+			return Type.BYTE;
+		else if(node instanceof ColorType)
+			return Type.COLOR;
+		else if(node instanceof VoidType)
+			return Type.VOID;
+		else if(node instanceof ToneType)
+			return Type.TONE;
+		else
+			return null;
+	}
 }

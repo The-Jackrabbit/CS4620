@@ -49,8 +49,8 @@ public class BuildSymTable extends DepthFirstVisitor
 
 	public void inFormal(Formal node)
     {
-		Type varType = new Type();
-        VarSTE Formal = new VarSTE(node.getName(), varType.getType(node.getType()), 'Y', offset);
+		Type varType = CurrentST.getType(node.getType());
+        VarSTE Formal = new VarSTE(node.getName(), varType, 'Y', offset);
 		offset += varType.getAVRTypeSize(); 
     }
 
