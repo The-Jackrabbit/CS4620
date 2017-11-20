@@ -163,24 +163,43 @@ method_list ::=
 	;
 
 method_decl ::=
-		PUBLIC:p type:i ID:name LPAREN formal_list:l1 RPAREN LBRACE block_statement:l2 RETURN exp:x SEMI RBRACE {:
+		PUBLIC:p type:i ID:name LPAREN formal_list:l1 RPAREN LBRACE statement_list:l2 RETURN exp:x SEMI RBRACE {:
 			RESULT = new MethodDecl(p.line, p.pos, i, name.lexeme,l1, new LinkedList<VarDecl>(), l2, x);
+		:}
+	  | PUBLIC:p type:i ID:name LPAREN formal_list:l1 RPAREN LBRACE statement_list:l2 RBRACE {:
+			RESULT = new MethodDecl(p.line, p.pos, i, name.lexeme,l1, new LinkedList<VarDecl>(), l2);
 		:}
 	  | PUBLIC:p type:i ID:name LPAREN formal_list:l1 RPAREN LBRACE RETURN exp:x SEMI RBRACE {:
 			RESULT = new MethodDecl(p.line, p.pos, i, name.lexeme,l1, new LinkedList<VarDecl>(), new LinkedList<IStatement>(), x);
 		:}
-	  | PUBLIC:p type:i ID:name LPAREN formal_list:l1 RPAREN block_statement:l2 {:
+	  | PUBLIC:p type:i ID:name LPAREN formal_list:l1 RPAREN LBRACE block_statement:l2 RBRACE {:
 			RESULT = new MethodDecl(p.line, p.pos, i, name.lexeme, l1, new LinkedList<VarDecl>(), l2);
 		:}
-	  | PUBLIC:p type:i ID:name LPAREN RPAREN LBRACE block_statement:l2 RETURN exp:x SEMI RBRACE {:
+	  | PUBLIC:p type:i ID:name LPAREN formal_list:l1 RPAREN LBRACE block_statement:l2 RETURN exp:x SEMI RBRACE {:
+			RESULT = new MethodDecl(p.line, p.pos, i, name.lexeme, l1, new LinkedList<VarDecl>(), l2, x);
+		:}
+	  | PUBLIC:p type:i ID:name LPAREN formal_list:l1 RPAREN LBRACE RBRACE {:
+			RESULT = new MethodDecl(p.line, p.pos, i, name.lexeme,l1, new LinkedList<VarDecl>(), new LinkedList<IStatement>());
+		:}
+	  | PUBLIC:p type:i ID:name LPAREN RPAREN LBRACE statement_list:l2 RETURN exp:x SEMI RBRACE {:
 			RESULT = new MethodDecl(p.line, p.pos, i, name.lexeme, new LinkedList<Formal>(), new LinkedList<VarDecl>(), l2, x);
+		:}	
+	  | PUBLIC:p type:i ID:name LPAREN RPAREN LBRACE statement_list:l2 RBRACE {:
+			RESULT = new MethodDecl(p.line, p.pos, i, name.lexeme, new LinkedList<Formal>(), new LinkedList<VarDecl>(), l2);
 		:}	
 	  | PUBLIC:p type:i ID:name LPAREN RPAREN LBRACE RETURN exp:x SEMI RBRACE {:
 			RESULT = new MethodDecl(p.line, p.pos, i, name.lexeme, new LinkedList<Formal>(), new LinkedList<VarDecl>(), new LinkedList<IStatement>(), x);
 		:}			
-	  | PUBLIC:p type:i ID:name LPAREN RPAREN block_statement:l2 {:
+	  | PUBLIC:p type:i ID:name LPAREN RPAREN LBRACE block_statement:l2 RBRACE {:
 			RESULT = new MethodDecl(p.line, p.pos, i, name.lexeme, new LinkedList<Formal>(), new LinkedList<VarDecl>(), l2);
 		:}
+	  | PUBLIC:p type:i ID:name LPAREN RPAREN LBRACE block_statement:l2 RETURN exp:x SEMI RBRACE {:
+			RESULT = new MethodDecl(p.line, p.pos, i, name.lexeme, new LinkedList<Formal>(), new LinkedList<VarDecl>(), l2, x);
+		:}
+	  | PUBLIC:p type:i ID:name LPAREN RPAREN LBRACE RBRACE {:
+			RESULT = new MethodDecl(p.line, p.pos, i, name.lexeme, new LinkedList<Formal>(), new LinkedList<VarDecl>(), new LinkedList<IStatement>());
+		:}	
+	  
 	;
 
 type ::=
