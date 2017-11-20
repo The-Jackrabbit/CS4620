@@ -17,5 +17,9 @@ public class Scope {
     public STE getEnclosing(String Name)
     {
     	return this.Enclosing.get(Name);
-    }
+	 }
+	 
+	 public HashMap<String,STE> getHashMap() {
+		 return this.Enclosing;
+	 }
 }
