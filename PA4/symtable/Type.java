@@ -129,9 +129,9 @@ public class Type
       return "TONE";
     }
 
-	if(this == Class)
+	if(this instanceof Type.Class)
 	{
-		return "class_" + ((Type.Class) this).getClassName() + ";"
+		return "class_" + ((Type.Class) this).getClassName() + ";";
 	}
 
     
