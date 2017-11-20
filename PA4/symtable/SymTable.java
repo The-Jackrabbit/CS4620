@@ -1,7 +1,9 @@
 package symtable;
+import java.io.PrintWriter;
+import java.io.PrintStream;
 import java.util.*;
 import ast.node.*;
-
+import ast_visitors.*;
 import exceptions.InternalException;
 
 /** 
@@ -20,12 +22,59 @@ public class SymTable {
 	private STE CurrentScope; //points to current scope in symbol table tree.
 							  //CurrentScope == null when GlobalScope is the current scope
 							  //note that CurrentScope does not point to the scope itself but to the STE containing the scope
-
+	private int nodeCount = 0;
     public SymTable() {
 		GlobalScope = new Scope();
 		CurrentScope = null;
 		mExpType = new HashMap<Node,Type>();
-    }
+	 }
+	 
+	 public void outputDot(PrintWriter out) {
+		DotSymbolTableVisitor stVisitor = new DotSymbolTableVisitor(out);
+		out.println("digraph SymTable {\ngraph [rankdir=\"LR\"];\nnode [shape=record];");
+		this.stDotRecurse(this.GlobalScope, stVisitor, out, this.nodeCount);
+		out.println("}");
+		out.close();
+	 }
+
+	 private void stDotRecurse(Scope theScope, DotSymbolTableVisitor stVisitor, PrintWriter out, int nodeCount) {
+		HashMap<String,STE> scopes = theScope.getHashMap();
+		stVisitor.dotScopeOutput(theScope, out, 0, -1, "root");
+		/* UTTER NONSENSE
+			int scopeRoot = this.nodeCount;
+			this.nodeCount++;
+			for (HashMap.Entry<String, STE> entry : scopes.entrySet()) {
+				if (entry.getValue() instanceof VarSTE) {
+					this.nodeCount++;
+					stVisitor.dotVarSTEOutput((VarSTE) entry.getValue(), out, this.nodeCount);
+					
+				}
+				else if (entry.getValue() instanceof MethodSTE) {
+					
+					stVisitor.dotMethodSTEOutput((MethodSTE) entry.getValue(), out, this.nodeCount);
+					this.nodeCount++;
+					Scope steScope = entry.getValue().getScope();
+					this.stDotRecurse(steScope, stVisitor, out, this.nodeCount);
+					
+					
+				}
+				else if (entry.getValue() instanceof ClassSTE) {
+					
+					stVisitor.dotClassSTEOutput((ClassSTE) entry.getValue(), out, this.nodeCount);
+					this.nodeCount++;
+					Scope steScope = entry.getValue().getScope();
+					this.stDotRecurse(steScope, stVisitor, out, this.nodeCount);
+					
+				}
+			}
+
+			for (HashMap.Entry<String, STE> entry : scopes.entrySet()) {
+				out.print(scopeRoot);
+				out.print(":<f" + Integer.toString(99999) + "> -> ");
+				out.print(Integer.toString(1000000000) + ":<f0>;\n");
+			}
+		*/
+	 }
 
 	//get current scope
 	public STE getCurrentScope() {
@@ -87,9 +136,8 @@ public class SymTable {
     {
     	return this.mExpType.get(exp);
     }
-
-	//returns correct Type object given an IType node of some type subclass
-	public Type getType(IType node) {
+	
+	 public Type getType(IType node) {
 		//if-else structure to determine what subclass of IType type is
 		if(node instanceof BoolType) 
 			return Type.BOOL;
