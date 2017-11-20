@@ -22,6 +22,19 @@ public class Type
 
   }
 
+  //class type, real type is ClassObject.getClassName()
+  public static class Class extends Type {
+	private String ClassName;
+	
+	public Class(String ClassName) {
+		this.ClassName = ClassName;
+	}
+
+	public String getClassName() {
+		return ClassName;
+	}
+  }
+
   //The following nested classes ONLY WORK if methods take as arguments+return PRIMITIVE TYPES ONLY
 
   //method signature type

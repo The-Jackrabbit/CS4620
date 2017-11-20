@@ -13,6 +13,7 @@ public class BuildSymTable extends DepthFirstVisitor
     
 	private SymTable CurrentST;
 	static int offset = 1; //offset variables in current method
+	static String currentClass = null; //name of current class
    
 	public BuildSymTable() {
    		CurrentST = new SymTable();
@@ -27,11 +28,13 @@ public class BuildSymTable extends DepthFirstVisitor
 		ClassSTE Class = new ClassSTE(node.getName());
         CurrentST.insert(Class);
 		CurrentST.enterScope(node.getName());
+		currentClass = node.getName();
     }
 
     public void outTopClassDecl(TopClassDecl node)
     {
         CurrentST.exitScope();
+		currentClass = null;
     }
 
 	public void inMethodDecl(MethodDecl node)
@@ -39,6 +42,11 @@ public class BuildSymTable extends DepthFirstVisitor
         MethodSTE Method = new MethodSTE(node.getName(), new Type.Signature(node.getType(), node.getFormals()));
 		CurrentST.insert(Method);
 		CurrentST.enterScope(node.getName());
+		//add implied "this" VarSTE
+		Type varType = new Type.Class("class_"+currentClass);
+        VarSTE Formal = new VarSTE("this", varType, 'Y', offset);
+		CurrentST.insert(Formal);
+		offset += varType.getAVRTypeSize();
     }
 
     public void outMethodDecl(MethodDecl node)
