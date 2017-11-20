@@ -25,6 +25,10 @@ public class BuildSymTable extends DepthFirstVisitor
 
 	public void inTopClassDecl(TopClassDecl node)
     {
+		//check for doubly-defined class
+		if(CurrentST.lookupCurrent(node.getName()) != null)
+			throw new SemanticException("Doubly Defined Class", node.getLine(), node.getPos());
+ 		//otherwise add new ClassSTE to current scope
 		ClassSTE Class = new ClassSTE(node.getName());
         CurrentST.insert(Class);
 		CurrentST.enterScope(node.getName());
@@ -39,7 +43,11 @@ public class BuildSymTable extends DepthFirstVisitor
 
 	public void inMethodDecl(MethodDecl node)
     {		
-        MethodSTE Method = new MethodSTE(node.getName(), new Type.Signature(node.getType(), node.getFormals()));
+		//check for doubly-defined method
+		if(CurrentST.lookupCurrent(node.getName()) != null)
+			throw new SemanticException("Doubly Defined Method", node.getLine(), node.getPos());
+		//otherwise add new MethodSTE to current scope
+		MethodSTE Method = new MethodSTE(node.getName(), new Type.Signature(node.getType(), node.getFormals()));
 		CurrentST.insert(Method);
 		CurrentST.enterScope(node.getName());
 		//add implied "this" VarSTE
@@ -57,6 +65,10 @@ public class BuildSymTable extends DepthFirstVisitor
 
 	public void inFormal(Formal node)
     {
+		//check for doubly-defined variable
+		if(CurrentST.lookupCurrent(node.getName()) != null)
+			throw new SemanticException("Doubly Defined Variable", node.getLine(), node.getPos());
+		//otherwise, add new VarSTE to current scope
 		Type varType = CurrentST.getType(node.getType());
         VarSTE Formal = new VarSTE(node.getName(), varType, 'Y', offset);
 		CurrentST.insert(Formal);
