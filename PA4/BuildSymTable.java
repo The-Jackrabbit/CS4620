@@ -43,7 +43,7 @@ public class BuildSymTable extends DepthFirstVisitor
 		CurrentST.insert(Method);
 		CurrentST.enterScope(node.getName());
 		//add implied "this" VarSTE
-		Type varType = new Type.Class("class_"+currentClass);
+		Type varType = new Type.Class(currentClass);
         VarSTE Formal = new VarSTE("this", varType, 'Y', offset);
 		CurrentST.insert(Formal);
 		offset += varType.getAVRTypeSize();
