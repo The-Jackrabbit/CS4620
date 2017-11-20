@@ -96,6 +96,12 @@ public class Type
     
 /*
 */
+ 
+  public boolean Equals(Type type) {
+	if(this == type)
+		return true;
+	return false;
+  }
 
   public String toString()
   {

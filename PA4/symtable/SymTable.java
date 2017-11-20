@@ -114,8 +114,12 @@ public class SymTable {
 	}
 	
 	/* Looks up the given method or class STE and makes it
-	   the current scope */
+	   the current scope. Null makes current scope global */
 	public void enterScope(String id) {
+		if(id == null) {
+			CurrentScope = null;
+			return;
+		}
 		STE found = lookup(id);
 		if(found != null)
 			CurrentScope = found;

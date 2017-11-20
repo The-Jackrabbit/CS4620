@@ -18,9 +18,7 @@ import ast.node.*;
 import ast.visitor.DepthFirstVisitor;
 import java.util.*;
 
-import symtable.MethodSTE;
-import symtable.SymTable;
-import symtable.Type;
+import symtable.*;
 import exceptions.InternalException;
 import exceptions.SemanticException;
 
@@ -41,6 +39,137 @@ public class CheckTypes extends DepthFirstVisitor
    /*public void defaultOut(Node node) {
        System.err.println("Node not implemented in CheckTypes, " + node.getClass());
    }*/
+
+	public void inTopClassDecl(TopClassDecl node)
+    {
+		//keep symbol table updated with what scope we're in
+		this.mCurrentST.enterScope(node.getName());
+    }
+
+    public void outTopClassDecl(TopClassDecl node)
+    {
+		//keep symbol table updated with what scope we're in
+        this.mCurrentST.exitScope();
+    }
+
+	public void inMethodDecl(MethodDecl node)
+    {
+		//keep symbol table updated with what scope we're in		
+		this.mCurrentST.enterScope(node.getName());
+    }
+
+    public void outMethodDecl(MethodDecl node)
+    {
+		//keep symbol table updated with what scope we're in
+        this.mCurrentST.exitScope();
+    }
+
+	public void outIdLiteral(IdLiteral node)
+    {
+        //check for undefined literal, first need to get the varSTE it corresponds to
+		STE result; //will hold the potential symbol table entry for the referenced var
+		VarSTE var; //will hold the verified STE for the referenced var		
+		if ((result = this.mCurrentST.lookup(node.getLexeme())) == null || !(result instanceof VarSTE))
+			throw new SemanticException("Undefined variable", node.getLine(), node.getPos());	
+		var = (VarSTE) result;
+		//set the type of the IDLiteral to the type of its associated VarSTE
+		this.mCurrentST.setExpType(node, var.getVarType());
+    }
+
+	public void outCallStatement(CallStatement node)
+    {
+        STE result; //will hold the potential symbol table entry for the called method
+		MethodSTE method; //will hold the verified STE for the called method
+        //check for undefined method or class
+		if(node.getExp() instanceof ThisLiteral) {
+			if((result = this.mCurrentST.lookup(node.getId())) == null || !(result instanceof MethodSTE))
+				throw new SemanticException("Undefined method", node.getLine(), node.getPos());
+			else
+				method = (MethodSTE) result;
+		} else if (!(node.getExp() instanceof NewExp) || (result = this.mCurrentST.lookup(((NewExp) (node.getExp())).getId())) == null 
+					|| !(result instanceof ClassSTE)) {
+						throw new SemanticException("Undefined class", node.getLine(), node.getPos());			
+		} else {
+			STE savedScope = this.mCurrentST.getCurrentScope();
+			this.mCurrentST.enterScope(((NewExp) node.getExp()).getId());
+			if((result = this.mCurrentST.lookup(node.getId())) == null || !(result instanceof MethodSTE))
+				throw new SemanticException("Undefined method", node.getLine(), node.getPos());
+			else
+				method = (MethodSTE) result;
+			if(savedScope == null)
+				this.mCurrentST.enterScope(null);
+			else
+				this.mCurrentST.enterScope(savedScope.getName());
+		} 
+		//check that signature of method STE matches calling signature
+		LinkedList<IExp> CallArgs = node.getArgs();
+		LinkedList<Type> DeclArgs = method.getSig().getArguments();
+		if(CallArgs.size() != DeclArgs.size())
+			throw new SemanticException("Call signature mismatch", node.getLine(), node.getPos());
+		//checks that types are equal unless a byte was PASSED INTO an int 
+		for(int i = 0; i < DeclArgs.size(); i++) {
+			if(!(DeclArgs.get(i).equals(this.mCurrentST.getExpType(CallArgs.get(i)))) 
+				&& !(DeclArgs.get(i).equals(Type.INT) && this.mCurrentST.getExpType(CallArgs.get(i)).equals(Type.BYTE) ))
+					throw new SemanticException("Call signature mismatch", node.getLine(), node.getPos());
+		}
+    }
+
+    public void outCallExp(CallExp node)
+    {
+        STE result; //will hold the potential symbol table entry for the called method
+		MethodSTE method; //will hold the verified STE for the called method
+        //check for undefined method or class
+		if(node.getExp() instanceof ThisLiteral) {
+			if((result = this.mCurrentST.lookup(node.getId())) == null || !(result instanceof MethodSTE))
+				throw new SemanticException("Undefined method", node.getLine(), node.getPos());
+			else
+				method = (MethodSTE) result;
+		} else if (!(node.getExp() instanceof NewExp) || (result = this.mCurrentST.lookup(((NewExp) (node.getExp())).getId())) == null 
+					|| !(result instanceof ClassSTE)) {
+						throw new SemanticException("Undefined class", node.getLine(), node.getPos());			
+		} else {
+			STE savedScope = this.mCurrentST.getCurrentScope();
+			this.mCurrentST.enterScope(((NewExp) node.getExp()).getId());
+			if((result = this.mCurrentST.lookup(node.getId())) == null || !(result instanceof MethodSTE))
+				throw new SemanticException("Undefined method", node.getLine(), node.getPos());
+			else
+				method = (MethodSTE) result;
+			if(savedScope == null)
+				this.mCurrentST.enterScope(null);
+			else
+				this.mCurrentST.enterScope(savedScope.getName());
+		}
+		//check that signature of method STE matches calling signature
+		LinkedList<IExp> CallArgs = node.getArgs();
+		LinkedList<Type> DeclArgs = method.getSig().getArguments();
+		if(CallArgs.size() != DeclArgs.size())
+			throw new SemanticException("Call signature mismatch", node.getLine(), node.getPos());
+		//checks that types are equal unless a byte was PASSED INTO an int 
+		for(int i = 0; i < DeclArgs.size(); i++) {
+			if(!(DeclArgs.get(i).equals(this.mCurrentST.getExpType(CallArgs.get(i)))) 
+				&& !(DeclArgs.get(i).equals(Type.INT) && this.mCurrentST.getExpType(CallArgs.get(i)).equals(Type.BYTE) ))
+					throw new SemanticException("Call signature mismatch", node.getLine(), node.getPos());
+		}
+		
+		//for call expression, set type of node to return type of method
+		this.mCurrentST.setExpType(node, method.getSig().getReturnType());
+    }
+
+	public void outLtExp(LtExp node)
+    {
+       Type lexpType = this.mCurrentST.getExpType(node.getLExp());
+       Type rexpType = this.mCurrentST.getExpType(node.getRExp());
+       if ((lexpType==Type.INT  || lexpType==Type.BYTE) &&
+           (rexpType==Type.INT  || rexpType==Type.BYTE)
+          ){
+           this.mCurrentST.setExpType(node, Type.BOOL);
+       } else {
+           throw new SemanticException(
+                   "Operands to < operator must be INT or BYTE",
+                   node.getLExp().getLine(),
+                   node.getLExp().getPos());
+       }
+    }
    
    public void outAndExp(AndExp node)
    {
@@ -183,9 +312,8 @@ public class CheckTypes extends DepthFirstVisitor
      this.mCurrentST.setExpType(node, Type.VOID);
    }
 
-   //need to change this in PA4 so it will accept a byte type as an argument
    public void outMeggyDelay(MeggyDelay node) {
-     if(this.mCurrentST.getExpType(node.getExp()) != Type.INT) {
+     if(this.mCurrentST.getExpType(node.getExp()) != Type.INT && this.mCurrentST.getExpType(node.getExp()) != Type.BYTE) {
        throw new SemanticException(
          "Invalid argument type for delay",
          node.getExp().getLine(), node.getExp().getPos());
@@ -196,7 +324,7 @@ public class CheckTypes extends DepthFirstVisitor
 
    
    public void outByteCast(ByteCast node) {
-     if(this.mCurrentST.getExpType(node.getExp()) != Type.INT) {
+     if(this.mCurrentST.getExpType(node.getExp()) != Type.INT && this.mCurrentST.getExpType(node.getExp()) != Type.BYTE) {
        throw new SemanticException(
          "Invalid type for byte casting",
          node.getExp().getLine(), node.getExp().getPos());
@@ -257,25 +385,14 @@ public class CheckTypes extends DepthFirstVisitor
      }
 
      this.mCurrentST.setExpType(node, Type.VOID);
-	}
-	/*
-	public void inMethodDecl(MethodDecl node) {
-		this.mCurrentST.enterScope(node.getName());
-	}
+   }
 
-	public void outCustomMethod(MethodDecl node) {
-		MethodSTE ste = this.mCurrentST.lookup(node.getName());
-		String sig = ste.getSignature();
-		
-		if(this.mCurrentST.getExpType(node.getExp()) != Type.BOOL) {
-		  throw new SemanticException(
-			 "Invalid type for method",
-			 node.getExp().getLine(), node.getExp().getPos());
-		}
- 
-		this.mCurrentST.setExpType(node, sig);
-		this.mCurrentST.exitScope();
-	 }*/
+
+
+
+
+
+
 
 
 }
