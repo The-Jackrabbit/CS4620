@@ -23,16 +23,10 @@ public class AVRgenVisitor extends DepthFirstVisitor
    //takes as arguments type of operand and if it is the first or second operand
    //(for proper reg alloc)
    private void promoteAndLoad(Type nodeType, int num) {
-	 int regHigh; //register # for high bits
-	 int regLow; //register # for low bits
-	 if(num == 1) { //is first operand (below second on stack b/c it was evaluated first, must be LOADED second)
-		regHigh = 25;
-		regLow = 24;
-	 } else { //num == 2, is second operand (above first on stack b/c it was evaluated second, must be LOADED first)
-	    regHigh = 19;
-		regLow = 18;
-	 }
-     if(nodeType == Type.BYTE || nodeType == Type.COLOR) {
+	 int regHigh = num+1; //register # for high bits
+	 int regLow = num; //register # for low bits
+
+     if(nodeType == Type.BYTE || nodeType == Type.COLOR || nodeType == Type.BOOL) {
 		int index = labelIndex;
 		labelIndex += 2;
 		//pop byte and promote to int
@@ -263,8 +257,7 @@ public class AVRgenVisitor extends DepthFirstVisitor
      out.println("# Casting int to byte by popping");
      out.println("# 2 bytes off stack and only pushing low order bits");
      out.println("# back on.  Low order bits are on top of stack.");
-     out.println("pop    r24");
-     out.println("pop    r25");
+     promoteAndLoad(this.mCurrentST.getExpType(node.getExp()), 24); //promote operand if needed and load
      out.println("push   r24");
    }
 
@@ -284,8 +277,8 @@ public class AVRgenVisitor extends DepthFirstVisitor
    public void outPlusExp(PlusExp node)
    {
 	   //right operand must be loaded first because it will be on top of stack (it is evaluated second)
-	   promoteAndLoad(this.mCurrentST.getExpType(node.getRExp()), 2); //promote right operand if needed and load
-	   promoteAndLoad(this.mCurrentST.getExpType(node.getLExp()), 1); //promote left operand if needed and load
+	   promoteAndLoad(this.mCurrentST.getExpType(node.getRExp()), 18); //promote right operand if needed and load
+	   promoteAndLoad(this.mCurrentST.getExpType(node.getLExp()), 24); //promote left operand if needed and load
        out.println("# Do add operation");
        out.println("add    r24, r18");
        out.println("adc    r25, r19");
@@ -296,8 +289,8 @@ public class AVRgenVisitor extends DepthFirstVisitor
   
    public void outMinusExp(MinusExp node) {
 	   //right operand must be loaded first because it will be on top of stack (it is evaluated second)
-	   promoteAndLoad(this.mCurrentST.getExpType(node.getRExp()), 2); //promote right operand if needed and load
-   	   promoteAndLoad(this.mCurrentST.getExpType(node.getLExp()), 1); //promote left operand if needed and load
+	   promoteAndLoad(this.mCurrentST.getExpType(node.getRExp()), 18); //promote right operand if needed and load
+   	   promoteAndLoad(this.mCurrentST.getExpType(node.getLExp()), 24); //promote left operand if needed and load
        out.println("# Do INT sub operation");
        out.println("sub    r24, r18");
        out.println("sbc    r25, r19");
@@ -309,7 +302,7 @@ public class AVRgenVisitor extends DepthFirstVisitor
    
    public void outNegExp(NegExp node) {
 	 out.println("# neg int");
-	 promoteAndLoad(this.mCurrentST.getExpType(node.getExp()), 1); //promote operand if needed and load
+	 promoteAndLoad(this.mCurrentST.getExpType(node.getExp()), 24); //promote operand if needed and load
      out.println("ldi     r22, 0");
      out.println("ldi     r23, 0");
      out.println("sub     r22, r24");
@@ -347,8 +340,8 @@ public class AVRgenVisitor extends DepthFirstVisitor
 	   labelIndex += 3;
 	   out.println("# equality check expression");
 	   //right operand must be loaded first because it will be on top of stack (it is evaluated second)
-	   promoteAndLoad(this.mCurrentST.getExpType(node.getRExp()), 2); //promote right operand if needed and load
-       promoteAndLoad(this.mCurrentST.getExpType(node.getLExp()), 1); //promote left operand if needed and load
+	   promoteAndLoad(this.mCurrentST.getExpType(node.getRExp()), 18); //promote right operand if needed and load
+       promoteAndLoad(this.mCurrentST.getExpType(node.getLExp()), 24); //promote left operand if needed and load
        out.println("cp    r24, r18");
        out.println("cpc   r25, r19");
        out.println("breq MJ_L"+(index+1));
@@ -516,7 +509,7 @@ public class AVRgenVisitor extends DepthFirstVisitor
 		else {
 			out.println("# handle return value");
     		out.println("# load a " + ste.getSig().getReturnType().getAVRTypeSize() + " byte expression off stack");
-			for(int i=ste.getSig().getReturnType().getAVRTypeSize()-1; i >= 0; i--) {
+			for(int i=0; i < ste.getSig().getReturnType().getAVRTypeSize(); i++) {
 				out.println("pop    r" + (24+i) );
 			}
 		}
@@ -566,7 +559,7 @@ public class AVRgenVisitor extends DepthFirstVisitor
 				this.mCurrentST.enterScope(savedScope.getName());
 		} 
 	
-        inCallExp(node, method);
+        inCallExp(node);
         if(node.getExp() != null)
         {
             node.getExp().accept(this);
@@ -578,7 +571,12 @@ public class AVRgenVisitor extends DepthFirstVisitor
                 e.accept(this);
             }
         }
-        outCallExp(node);
+        outCallExp(node, method);
+		out.println("# handle return value");
+    	out.println("# push " + method.getSig().getReturnType().getAVRTypeSize() + " byte expression onto stack");
+		for(int i=method.getSig().getReturnType().getAVRTypeSize()-1; i >= 0; i--) {
+			out.println("push    r" + (24+i) );
+		}
     }
 
 	public void visitCallStatement(CallStatement node)
@@ -597,7 +595,7 @@ public class AVRgenVisitor extends DepthFirstVisitor
 				this.mCurrentST.enterScope(savedScope.getName());
 		} 
 
-        inCallStatement(node, method);
+        inCallStatement(node);
         if(node.getExp() != null)
         {
             node.getExp().accept(this);
@@ -609,22 +607,106 @@ public class AVRgenVisitor extends DepthFirstVisitor
                 e.accept(this);
             }
         }
-        outCallStatement(node);
+        outCallStatement(node, method);
     }
 
-	public void inCallStatement(CallStatement node, STE ste)
+	public void outCallStatement(CallStatement node, MethodSTE ste)
     {	       
-				
+	   //promoteAndLoad(type, regLow); -need to call this whenever type is int
+		out.println("#### function call");
+    	out.println("# put parameter values into appropriate registers");
+		LinkedList<Type> Params = ste.getSig().getArguments();
+		for(int i = Params.size()-1; i >= 0; i--) {
+			if(Params.get(i).equals(Type.INT)) {
+				promoteAndLoad(Type.BYTE, ((24-2*Params.size())+(2*((Params.size()-1)-i))));
+			} else {
+				for(int j = Params.get(i).getAVRTypeSize()-1; j >= 0; j--) {
+					out.println("pop   r" + (((24-2*Params.size())+j)+(2*((Params.size()-1)-i))) );
+				}
+			}
+		}
+		//handle implied this param
+		out.println("pop r24");
+    	out.println("pop r25");
+		if(node.getExp() instanceof ThisLiteral) {
+			out.println("call    " + currentClass + "_" + ste.getName());
+		} else { 
+    		out.println("call    " + ((NewExp) node.getExp()).getId() + "_" + ste.getName());
+		}
     }
 
-    public void inCallExp(CallExp node, STE ste)
+    public void outCallExp(CallExp node, MethodSTE ste)
     {
-        
+        //promoteAndLoad(type, regLow); -need to call this whenever type is int
+		out.println("#### function call");
+    	out.println("# put parameter values into appropriate registers");
+		LinkedList<Type> Params = ste.getSig().getArguments();
+		for(int i = Params.size()-1; i >= 0; i--) {
+			if(Params.get(i).equals(Type.INT)) {
+				promoteAndLoad(Type.BYTE, ((24-2*Params.size())+(2*((Params.size()-1)-i))));
+			} else {
+				for(int j = Params.get(i).getAVRTypeSize()-1; j >= 0; j--) {
+					out.println("pop   r" + (((24-2*Params.size())+j)+(2*((Params.size()-1)-i))) );
+				}
+			}
+		}
+		//handle implied this param
+		out.println("pop r24");
+    	out.println("pop r25");
+		if(node.getExp() instanceof ThisLiteral) {
+			out.println("call    " + currentClass + "_" + ste.getName());
+		} else { 
+    		out.println("call    " + ((NewExp) node.getExp()).getId() + "_" + ste.getName());
+		}
     }
 
+	public void outThisExp(ThisLiteral node) {
+		out.println("# loading the implicit \"this\"");
+    	out.println("# load a two byte variable from base+offset");
+    	out.println("ldd    r31, Y + 2");
+    	out.println("ldd    r30, Y + 1");
+    	out.println("# push two byte expression onto stack");
+    	out.println("push   r31");
+    	out.println("push   r30");
+	}
+
+	public void outNewExp(NewExp node) {
+		out.println("# NewExp");
+    	out.println("ldi    r24, lo8(0)");
+    	out.println("ldi    r25, hi8(0)");
+    	out.println("# allocating object of size 0 on heap");
+    	out.println("call    malloc");
+    	out.println("# push object address");
+    	out.println("# push two byte expression onto stack");
+    	out.println("push   r25");
+    	out.println("push   r24");
+	} 	
+	
 	public void outLtExp(LtExp node)
     {
-       
+		int index = labelIndex;
+	    labelIndex += 3;
+       	out.println("# less than expression");
+    	//right operand must be loaded first because it will be on top of stack (it is evaluated second)
+	   	promoteAndLoad(this.mCurrentST.getExpType(node.getRExp()), 18); //promote right operand if needed and load
+	   	promoteAndLoad(this.mCurrentST.getExpType(node.getLExp()), 24); //promote left operand if needed and load
+    	out.println("cp    r24, r18");
+    	out.println("cpc   r25, r19");
+    	out.println("brlt MJ_L"+(index+1));
+
+    	out.println("# load false");
+		out.println("MJ_L" + index + ":");
+    	out.println("ldi     r24, 0");
+    	out.println("jmp      MJ_L"+(index+2));
+
+    	out.println("# load true");
+		out.println("MJ_L" + (index+1) + ":");
+    	out.println("ldi    r24, 1");
+
+    	out.println("# push result of less than");
+		out.println("MJ_L" + (index+2) + ":");
+    	out.println("# push one byte expression onto stack");
+    	out.println("push   r24");
     }
 
 }
